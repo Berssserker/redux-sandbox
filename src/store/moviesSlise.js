@@ -1,30 +1,17 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 
-import { apiKey } from '../public/apiKey'
-
-export const fetchMovies = createAsyncThunk('movies/fetchMovies', async (text) => {
-  const page = '1'
-  const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(text)}&page=${page}`
-
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`${response.status}, ${response.statusText}`)
-  }
-  const body = await response.json()
-  return body.results
-})
+import { fetchMovies } from '../services/fetchMovies'
 
 export const moviesSlise = createSlice({
   name: 'movies',
   initialState: {
     movies: [],
-    page: '1',
     status: null,
     error: null,
   },
   reducers: {
-    setPage(state, action) {
-      state.page = action.payload
+    setMovies(state, action) {
+      state.movies = action.payload
     },
   },
   extraReducers: (builder) => {
@@ -36,11 +23,20 @@ export const moviesSlise = createSlice({
       .addCase(fetchMovies.fulfilled, (state, action) => {
         console.log(action)
         state.status = 'resolved'
-        state.movies = action.payload || []
+        state.movies = action.payload
+        if (action.payload && action.payload.length === 0 && state.text) {
+          state.status = 'rejected'
+          state.error = 'Not found'
+        }
+      })
+      .addCase(fetchMovies.rejected, (state, action) => {
+        console.log(action.payload)
+        state.status = 'rejected'
+        state.error = action.payload
       })
   },
 })
 
-export const { setPage, setText } = moviesSlise.actions
+export const { setMovies } = moviesSlise.actions
 
 export default moviesSlise.reducer
